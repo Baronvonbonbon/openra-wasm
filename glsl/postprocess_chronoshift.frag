@@ -1,4 +1,5 @@
 #version {VERSION}
+{DEFINES}
 #ifdef GL_ES
 precision mediump float;
 #endif

@@ -62,8 +62,7 @@ namespace OpenRA.Web
 		{
 			try
 			{
-				GLDiagnostics.SetClearColor(r, g, b, 1f);
-				window.Context.Clear();
+				GLDiagnostics.ClearTo(r, g, b);
 
 				var pixel = GLDiagnostics.ReadPixel(0, 0);
 				return $"OK|{pixel[0]},{pixel[1]},{pixel[2]},{pixel[3]}";

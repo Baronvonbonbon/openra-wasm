@@ -32,10 +32,21 @@ namespace OpenRA.Platforms.Default
 			None = 0,
 			DebugMessagesCallback = 1,
 			ESReadFormatBGRA = 2,
+			ESTextureFormatBGRA = 4,
 		}
 
 		public static GLProfile Profile { get; private set; }
 		public static GLFeatures Features { get; private set; }
+
+		/// <summary>
+		/// Whether textures must be uploaded as RGBA and have their red and blue
+		/// channels exchanged when sampled. OpenRA keeps pixel data in BGRA order;
+		/// where GL_EXT_texture_format_BGRA8888 is unavailable - notably WebGL2, which
+		/// does not expose it - the data is uploaded untouched as RGBA and the shaders
+		/// swap the channels back.
+		/// </summary>
+		public static bool SwapTextureChannels =>
+			Profile == GLProfile.Embedded && !Features.HasFlag(GLFeatures.ESTextureFormatBGRA);
 
 		public static string Version { get; private set; }
 
@@ -691,13 +702,20 @@ namespace OpenRA.Platforms.Default
 						break;
 				}
 
-				// Core features are defined as the shared feature set of GL 3.2 and (GLES 3 + derivatives, BGRA extensions)
-				var hasBGRA = IsExtensionSupported("GL_EXT_texture_format_BGRA8888");
-				var hasDerivatives = IsExtensionSupported("GL_OES_standard_derivatives");
-				if (Version.Contains(" ES") && hasBGRA && hasDerivatives && major >= 3)
+				// Core features are defined as the shared feature set of GL 3.2 and GLES 3.
+				// Standard derivatives are core in GLES 3, so they are not queried: drivers
+				// that provide them as core do not also advertise the extension.
+				if (Version.Contains(" ES") && major >= 3)
 				{
 					hasValidConfiguration = true;
 					Profile = GLProfile.Embedded;
+
+					// BGRA upload and readback are optional on GLES 3 and absent on WebGL2.
+					// Where they are missing, Texture falls back to RGBA and the shaders
+					// compensate - see SwapTextureChannels.
+					if (IsExtensionSupported("GL_EXT_texture_format_BGRA8888"))
+						Features |= GLFeatures.ESTextureFormatBGRA;
+
 					if (IsExtensionSupported("GL_EXT_read_format_bgra"))
 						Features |= GLFeatures.ESReadFormatBGRA;
 				}

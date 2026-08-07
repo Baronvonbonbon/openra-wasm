@@ -30,7 +30,7 @@ if (created.startsWith('OK|')) {
 		const [r, g, b] = pixel.split(',').map(Number);
 		const expected = [51, 153, 77];
 		const close = expected.every((e, i) => Math.abs([r, g, b][i] - e) <= 2);
-		console.log(`[gate-c]   IGraphicsContext.Clear() -> rgba(${pixel}), expected ~${expected}`);
+		console.log(`[gate-c]   cleared through the engine GL bindings -> rgba(${pixel}), expected ~${expected}`);
 		console.log(close && profile === 'Embedded'
 			? '[gate-c] PASS - the engine renders through its own GL stack in the browser.'
 			: `[gate-c] FAIL - profile=${profile} pixelMatch=${close}`);

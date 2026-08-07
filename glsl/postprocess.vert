@@ -1,4 +1,5 @@
 #version {VERSION}
+{DEFINES}
 
 in vec2 aVertexPosition;
 

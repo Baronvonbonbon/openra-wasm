@@ -41,10 +41,16 @@ namespace OpenRA.Platforms.Default
 			return pixel;
 		}
 
-		/// <summary>Sets the colour used by <see cref="IGraphicsContext.Clear"/>.</summary>
-		public static void SetClearColor(float r, float g, float b, float a)
+		/// <summary>
+		/// Clears the drawing buffer to a colour. IGraphicsContext.Clear always clears
+		/// to black, so this is used to verify that rendering actually reaches the
+		/// buffer rather than merely that the call succeeded.
+		/// </summary>
+		public static void ClearTo(float r, float g, float b)
 		{
-			OpenGL.glClearColor(r, g, b, a);
+			OpenGL.glClearColor(r, g, b, 1f);
+			OpenGL.CheckGLError();
+			OpenGL.glClear(OpenGL.GL_COLOR_BUFFER_BIT | OpenGL.GL_DEPTH_BUFFER_BIT);
 			OpenGL.CheckGLError();
 		}
 	}

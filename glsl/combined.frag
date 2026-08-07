@@ -1,4 +1,5 @@
 #version {VERSION}
+{DEFINES}
 #ifdef GL_ES
 precision mediump float;
 #endif
@@ -96,26 +97,39 @@ vec2 Size(uint samplerIndex)
 	}
 }
 
+// OpenRA keeps pixel data in BGRA order. Where BGRA texture uploads are
+// unavailable the data is uploaded as RGBA instead, so red and blue arrive
+// exchanged and are put back here. Only textures uploaded from CPU pixel data
+// are affected; float textures and framebuffer attachments are not.
+vec4 SwapChannels(vec4 c)
+{
+#ifdef SWAP_TEXTURE_CHANNELS
+	return c.bgra;
+#else
+	return c;
+#endif
+}
+
 vec4 Sample(uint samplerIndex, vec2 pos)
 {
 	switch (samplerIndex)
 	{
 		case 7u:
-			return texture(Texture7, pos);
+			return SwapChannels(texture(Texture7, pos));
 		case 6u:
-			return texture(Texture6, pos);
+			return SwapChannels(texture(Texture6, pos));
 		case 5u:
-			return texture(Texture5, pos);
+			return SwapChannels(texture(Texture5, pos));
 		case 4u:
-			return texture(Texture4, pos);
+			return SwapChannels(texture(Texture4, pos));
 		case 3u:
-			return texture(Texture3, pos);
+			return SwapChannels(texture(Texture3, pos));
 		case 2u:
-			return texture(Texture2, pos);
+			return SwapChannels(texture(Texture2, pos));
 		case 1u:
-			return texture(Texture1, pos);
+			return SwapChannels(texture(Texture1, pos));
 		default:
-			return texture(Texture0, pos);
+			return SwapChannels(texture(Texture0, pos));
 	}
 }
 
@@ -131,10 +145,10 @@ vec4 SamplePalettedBilinear(uint samplerIndex, vec2 coords, vec2 textureSize)
 	vec4 x3 = Sample(samplerIndex, tl + vec2(0., px.y));
 	vec4 x4 = Sample(samplerIndex, tl + px);
 
-	vec4 c1 = texture(Palette, vec2(dot(x1, vChannelMask), vTexPalette));
-	vec4 c2 = texture(Palette, vec2(dot(x2, vChannelMask), vTexPalette));
-	vec4 c3 = texture(Palette, vec2(dot(x3, vChannelMask), vTexPalette));
-	vec4 c4 = texture(Palette, vec2(dot(x4, vChannelMask), vTexPalette));
+	vec4 c1 = SwapChannels(texture(Palette, vec2(dot(x1, vChannelMask), vTexPalette)));
+	vec4 c2 = SwapChannels(texture(Palette, vec2(dot(x2, vChannelMask), vTexPalette)));
+	vec4 c3 = SwapChannels(texture(Palette, vec2(dot(x3, vChannelMask), vTexPalette)));
+	vec4 c4 = SwapChannels(texture(Palette, vec2(dot(x4, vChannelMask), vTexPalette)));
 
 	return mix(mix(c1, c2, interp.x), mix(c3, c4, interp.x), interp.y);
 }
@@ -182,7 +196,7 @@ void main()
 		vec4 x = Sample(vChannelSampler, coords);
 		vec2 p = vec2(dot(x, vChannelMask), vTexPalette);
 		if (isPaletted)
-			c = texture(Palette, p);
+			c = SwapChannels(texture(Palette, p));
 		else if (isColor)
 			c = vTexCoord;
 		else

@@ -32,6 +32,13 @@ namespace OpenRA.Platforms.Default
 
 			code = code.Replace("{VERSION}", version);
 
+			// Textures are uploaded as RGBA when BGRA uploads are unavailable, so the
+			// shaders have to exchange red and blue when sampling them.
+			if (OpenGL.SwapTextureChannels)
+				code = code.Replace("{DEFINES}", "#define SWAP_TEXTURE_CHANNELS");
+			else
+				code = code.Replace("{DEFINES}", "");
+
 			var shader = OpenGL.glCreateShader(type);
 			OpenGL.CheckGLError();
 			unsafe

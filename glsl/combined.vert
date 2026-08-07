@@ -1,4 +1,5 @@
 #version {VERSION}
+{DEFINES}
 
 uniform vec3 Scroll;
 uniform vec3 p1, p2;

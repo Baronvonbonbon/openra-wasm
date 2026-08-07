@@ -1,4 +1,5 @@
 #version {VERSION}
+{DEFINES}
 
 uniform mat4 View;
 uniform mat4 TransformMatrix;
