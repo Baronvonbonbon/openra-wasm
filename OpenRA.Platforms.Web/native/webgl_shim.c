@@ -124,3 +124,4 @@ void openra_canvas_size(const char *selector, int *width, int *height)
 	*width = (int)w;
 	*height = (int)h;
 }
+

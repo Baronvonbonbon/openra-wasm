@@ -33,14 +33,15 @@
 	<!-- Native sources are linked by the app project, not by referenced libraries,
 	     so the platform's WebGL shim has to be listed here. -->
 	<ItemGroup>
-		<NativeFileReference Include="..\OpenRA.Platforms.Web\native\webgl_shim.c" />
+		<NativeFileReference Include="../OpenRA.Platforms.Web/native/webgl_shim.c" />
 	</ItemGroup>
 
 
 	<!-- The SDK's deploy of wwwroot content is incremental and does not reliably
 	     re-copy edited files, which silently serves a stale page. Copy them
-	     unconditionally after every build instead. -->
-	<Target Name="CopyWebAssets" AfterTargets="Build">
+	     unconditionally instead, after the app bundle is generated: a native relink
+	     recreates that directory and would otherwise discard these files. -->
+	<Target Name="CopyWebAssets" AfterTargets="WasmGenerateAppBundle">
 		<ItemGroup>
 			<WebAsset Include="wwwroot/**/*" />
 		</ItemGroup>
@@ -52,7 +53,7 @@
 	<!-- The engine reads shader sources from EngineDir/glsl at runtime. They are
 	     served alongside the bundle so the page can fetch them into the virtual
 	     filesystem. -->
-	<Target Name="CopyEngineFiles" AfterTargets="Build">
+	<Target Name="CopyEngineFiles" AfterTargets="WasmGenerateAppBundle">
 		<ItemGroup>
 			<ShaderSource Include="$(EngineRootPath)/glsl/**/*" />
 		</ItemGroup>
