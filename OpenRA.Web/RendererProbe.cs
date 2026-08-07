@@ -11,6 +11,7 @@
 
 using System;
 using System.Runtime.InteropServices.JavaScript;
+using OpenRA.Graphics;
 using OpenRA.Platforms.Default;
 using OpenRA.Primitives;
 
@@ -55,6 +56,29 @@ namespace OpenRA.Web
 				description += $"{(description.Length > 0 ? " <- " : "")}{current.GetType().Name}: {current.Message}";
 
 			return description;
+		}
+
+		/// <summary>
+		/// Compiles the engine's real combined shader. This exercises the whole path:
+		/// reading the source from the virtual filesystem, substituting {VERSION} and
+		/// {DEFINES}, and compiling the result as GLSL ES 3.00 - including the channel
+		/// swap that compensates for the missing BGRA texture format.
+		/// </summary>
+		[JSExport]
+		public static string CompileCombinedShader()
+		{
+			try
+			{
+				var bindings = new CombinedShaderBindings();
+				window.Context.CreateShader(bindings);
+
+				var swapped = bindings.FragmentShaderCode.Contains("SWAP_TEXTURE_CHANNELS");
+				return $"OK|{bindings.VertexShaderName}|{bindings.Attributes.Length}|{swapped}";
+			}
+			catch (Exception e)
+			{
+				return $"FAIL|{Describe(e)}";
+			}
 		}
 
 		[JSExport]

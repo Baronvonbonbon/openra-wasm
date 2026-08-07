@@ -10,6 +10,53 @@ globalThis.openra = exports.OpenRA.Web;
 
 await runMain();
 
+// Populate the virtual filesystem before anything reads Platform.EngineDir,
+// which latches on first access. The engine then opens these as ordinary paths.
+const vfs = exports.OpenRA.Web.BrowserFileSystem;
+
+const initialized = vfs.Initialize();
+if (initialized.startsWith('OK|')) {
+	const [, platform, engineDir, supportDir] = initialized.split('|');
+	console.log('[vfs] filesystem ready');
+	console.log(`[vfs]   Platform.CurrentPlatform: ${platform}`);
+	console.log(`[vfs]   EngineDir: ${engineDir}`);
+	console.log(`[vfs]   SupportDir: ${supportDir}`);
+
+	const shaders = [
+		'combined.vert', 'combined.frag', 'model.vert', 'model.frag',
+		'postprocess.vert', 'postprocess_textured.vert', 'postprocess_tint.frag',
+		'postprocess_flash.frag', 'postprocess_menufade.frag',
+		'postprocess_chronoshift.frag', 'postprocess_textured_sonic.frag',
+		'postprocess_textured_vortex.frag',
+	];
+
+	for (const name of shaders) {
+		const response = await fetch(`./engine/glsl/${name}`);
+		if (!response.ok) {
+			console.log(`[vfs] FAIL - could not fetch ${name}: ${response.status}`);
+			break;
+		}
+
+		const bytes = new Uint8Array(await response.arrayBuffer());
+		const result = vfs.Mount(`glsl/${name}`, bytes);
+		if (result !== 'OK') {
+			console.log(`[vfs] ${result}`);
+			break;
+		}
+	}
+
+	const [files, bytes] = vfs.Describe().split('|');
+	const readable = vfs.VerifyReadable('glsl/combined.frag');
+	console.log(`[vfs]   mounted ${files} files, ${bytes} bytes`);
+	console.log(`[vfs]   combined.frag readable through System.IO: ${readable}`);
+	console.log(readable.startsWith('OK|') && Number(files) === shaders.length
+		? '[vfs] PASS - the engine can read mounted files as ordinary paths.'
+		: '[vfs] FAIL - mounted files are not reachable.');
+} else {
+	console.log(`[vfs] ${initialized}`);
+	console.log('[vfs] FAIL - could not initialize the filesystem.');
+}
+
 // Gate C: bring up the engine's real graphics stack - WebPlatform creates the
 // window and context, which runs OpenGL.Initialize and binds every GL entry point.
 const renderer = exports.OpenRA.Web.RendererProbe;
@@ -37,6 +84,19 @@ if (created.startsWith('OK|')) {
 	} else {
 		console.log(`[gate-c] ${cleared}`);
 		console.log('[gate-c] FAIL - clear/read failed.');
+	}
+
+	// Compile the engine's real shader: reads from the virtual filesystem,
+	// substitutes {VERSION} and {DEFINES}, and compiles as GLSL ES 3.00.
+	const compiled = renderer.CompileCombinedShader();
+	if (compiled.startsWith('OK|')) {
+		const [, name, attributes, swapped] = compiled.split('|');
+		console.log(`[gate-c] compiled shader '${name}' with ${attributes} vertex attributes`);
+		console.log(`[gate-c]   channel swap active in source: ${swapped}`);
+		console.log('[gate-c] PASS - the engine compiles its real shaders in the browser.');
+	} else {
+		console.log(`[gate-c] ${compiled}`);
+		console.log('[gate-c] FAIL - shader compilation failed.');
 	}
 } else {
 	console.log(`[gate-c] ${created}`);

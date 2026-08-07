@@ -48,4 +48,16 @@
 		      DestinationFolder="$(OutputPath)AppBundle/%(RecursiveDir)"
 		      SkipUnchangedFiles="false" />
 	</Target>
+
+	<!-- The engine reads shader sources from EngineDir/glsl at runtime. They are
+	     served alongside the bundle so the page can fetch them into the virtual
+	     filesystem. -->
+	<Target Name="CopyEngineFiles" AfterTargets="Build">
+		<ItemGroup>
+			<ShaderSource Include="$(EngineRootPath)/glsl/**/*" />
+		</ItemGroup>
+		<Copy SourceFiles="@(ShaderSource)"
+		      DestinationFolder="$(OutputPath)AppBundle/engine/glsl/%(RecursiveDir)"
+		      SkipUnchangedFiles="false" />
+	</Target>
 </Project>

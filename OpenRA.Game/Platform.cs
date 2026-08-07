@@ -16,7 +16,7 @@ using System.Runtime.InteropServices;
 
 namespace OpenRA
 {
-	public enum PlatformType { Unknown, Windows, OSX, Linux }
+	public enum PlatformType { Unknown, Windows, OSX, Linux, Browser }
 
 	public enum SupportDirType { System, ModernUser, LegacyUser, User }
 
@@ -39,6 +39,11 @@ namespace OpenRA
 
 		static PlatformType GetCurrentPlatform()
 		{
+			// Checked before the probe below: starting a process is unsupported under
+			// wasm, and the browser filesystem is virtual rather than a real OS layout.
+			if (System.OperatingSystem.IsBrowser())
+				return PlatformType.Browser;
+
 			if (Environment.OSVersion.Platform == PlatformID.Win32NT)
 				return PlatformType.Windows;
 
@@ -183,6 +188,16 @@ namespace OpenRA
 					modernUserSupportPath = Path.Combine(xdgConfigHome, "openra") + Path.DirectorySeparatorChar;
 					systemSupportPath = "/var/games/openra/";
 
+					break;
+				}
+
+				case PlatformType.Browser:
+				{
+					// The browser filesystem is a virtual one owned by the runtime, so
+					// there are no platform conventions to follow and no distinction
+					// between system and user locations. Persisting anything written
+					// here is the host page's responsibility.
+					modernUserSupportPath = legacyUserSupportPath = systemSupportPath = "/openra/support/";
 					break;
 				}
 
