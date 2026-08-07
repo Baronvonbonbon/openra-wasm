@@ -19,7 +19,7 @@ namespace OpenRA.Web
 	/// Gate A entry point: verifies that the .NET runtime boots under browser-wasm
 	/// and that the OpenRA engine assemblies load and are reflectable.
 	/// </summary>
-	public static class Program
+	internal static class Program
 	{
 		public static void Main()
 		{

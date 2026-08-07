@@ -10,6 +10,27 @@ globalThis.openra = exports.OpenRA.Web;
 
 await runMain();
 
+// Gate C probe: can Emscripten's WebGL emulation be reached through P/Invoke?
+// If so the existing OpenGL.cs stack can be reused against WebGL2.
+const probe = exports.OpenRA.Web.WebGLProbe.Probe('#canvas');
+if (probe.startsWith('OK|')) {
+	const [, version, glsl, renderer, pixel, viaDelegate] = probe.split('|');
+	console.log('[gate-c] WebGL context created through P/Invoke');
+	console.log(`[gate-c]   GL_VERSION: ${version}`);
+	console.log(`[gate-c]   GLSL: ${glsl}`);
+	console.log(`[gate-c]   renderer: ${renderer}`);
+
+	// Read the pixel back to prove the clear actually reached the canvas.
+	const gl = document.getElementById('canvas').getContext('webgl2');
+	console.log(`[gate-c]   pixel read back after clear: rgba(${pixel})`);
+	console.log(`[gate-c]   canvas has a live webgl2 context: ${!!gl}`);
+	console.log(`[gate-c]   glClear bound via proc-address delegate -> rgba(${viaDelegate})`);
+	console.log('[gate-c] PASS - Emscripten GL is reachable from managed code.');
+} else {
+	console.log(`[gate-c] ${probe}`);
+	console.log('[gate-c] FAIL - must rebuild the graphics context on [JSImport] WebGL.');
+}
+
 // Gate B: drive the engine from requestAnimationFrame. The desktop build blocks in a
 // while loop and calls Thread.Sleep between iterations; doing that on the browser's
 // single thread would freeze the tab, so each frame takes exactly one engine step

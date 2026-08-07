@@ -21,7 +21,7 @@ namespace OpenRA.Web
 	/// so here JS calls Step() once per animation frame and Game.LoopStep()
 	/// performs exactly one iteration and returns.
 	/// </summary>
-	public static partial class BrowserLoop
+	internal static partial class BrowserLoop
 	{
 		static readonly Stopwatch Clock = Stopwatch.StartNew();
 		static long steps;

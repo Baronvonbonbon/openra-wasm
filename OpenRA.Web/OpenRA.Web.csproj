@@ -14,6 +14,11 @@
 		<PublishTrimmed>false</PublishTrimmed>
 		<InvariantGlobalization>true</InvariantGlobalization>
 		<WasmEnableSIMD>true</WasmEnableSIMD>
+
+		<!-- Emscripten defaults to MAX_WEBGL_VERSION=1, which silently downgrades a
+		     WebGL2 context request to WebGL1. OpenRA's Embedded GL profile targets
+		     OpenGL ES 3.0 (#version 300 es), which requires WebGL2. -->
+		<EmccExtraLDFlags>-s MAX_WEBGL_VERSION=2</EmccExtraLDFlags>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -22,6 +27,10 @@
 
 	<ItemGroup>
 		<WasmExtraFilesToDeploy Include="wwwroot/index.html" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<NativeFileReference Include="native/webgl_shim.c" />
 	</ItemGroup>
 
 	<!-- The SDK's deploy of wwwroot content is incremental and does not reliably
