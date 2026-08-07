@@ -44,9 +44,13 @@
   </ItemGroup>
 
   <Target Name="DisableAnalyzers" BeforeTargets="CoreCompile" Condition="'$(Configuration)'=='Release'">
-    <!-- Disable code style analysis on Release builds to improve compile-time performance -->
+    <!-- Disable code style analysis on Release builds to improve compile-time performance.
+         Only the style analyzers are removed: source generators are also passed to the
+         compiler as Analyzer items, and removing those breaks generated code such as the
+         [JSImport]/[JSExport] interop stubs used by the browser-wasm build. -->
     <ItemGroup Condition="'$(Configuration)'=='Release'">
-      <Analyzer Remove="@(Analyzer)" />
+      <Analyzer Remove="@(Analyzer)"
+                Condition="$([System.String]::Copy('%(Filename)').StartsWith('StyleCop')) Or $([System.String]::Copy('%(Filename)').StartsWith('Roslynator'))" />
     </ItemGroup>
   </Target>
 

@@ -1,6 +1,7 @@
 # Visual Studio
 Release
 bin
+bin-web
 obj
 *.ncb
 *.vcproj*

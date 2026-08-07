@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFramework>net10.0-browser</TargetFramework>
+		<RuntimeIdentifier>browser-wasm</RuntimeIdentifier>
+		<OutputType>Exe</OutputType>
+		<RootNamespace>OpenRA.Web</RootNamespace>
+		<AssemblyName>OpenRA.Web</AssemblyName>
+		<OutputPath>$(EngineRootPath)/bin-web</OutputPath>
+		<WasmMainJSPath>wwwroot/main.js</WasmMainJSPath>
+
+		<!-- Gate A: prove the runtime boots and OpenRA assemblies load.
+		     Trimming is deliberately OFF - OpenRA's ObjectCreator/FieldLoader are
+		     heavily reflective and will need ILLink descriptors before this can be enabled. -->
+		<PublishTrimmed>false</PublishTrimmed>
+		<InvariantGlobalization>true</InvariantGlobalization>
+		<WasmEnableSIMD>true</WasmEnableSIMD>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\OpenRA.Game\OpenRA.Game.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<WasmExtraFilesToDeploy Include="wwwroot/index.html" />
+	</ItemGroup>
+
+	<!-- The SDK's deploy of wwwroot content is incremental and does not reliably
+	     re-copy edited files, which silently serves a stale page. Copy them
+	     unconditionally after every build instead. -->
+	<Target Name="CopyWebAssets" AfterTargets="Build">
+		<ItemGroup>
+			<WebAsset Include="wwwroot/**/*" />
+		</ItemGroup>
+		<Copy SourceFiles="@(WebAsset)"
+		      DestinationFolder="$(OutputPath)AppBundle/%(RecursiveDir)"
+		      SkipUnchangedFiles="false" />
+	</Target>
+</Project>
