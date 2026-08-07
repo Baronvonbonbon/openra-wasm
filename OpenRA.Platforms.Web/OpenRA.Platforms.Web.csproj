@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFramework>net10.0-browser</TargetFramework>
+		<RuntimeIdentifier>browser-wasm</RuntimeIdentifier>
+		<OutputPath>$(EngineRootPath)/bin-web</OutputPath>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\OpenRA.Game\OpenRA.Game.csproj" />
+	</ItemGroup>
+
+	<!-- The GL half of the platform is identical in the browser: WebGL2 is OpenGL
+	     ES 3.0, which is what GLProfile.Embedded already targets. These files are
+	     shared with OpenRA.Platforms.Default rather than duplicated; only context
+	     creation, the window and input differ, and those live in this project. -->
+	<ItemGroup>
+		<Compile Include="..\OpenRA.Platforms.Default\OpenGL.cs" Link="Shared\OpenGL.cs" />
+		<Compile Include="..\OpenRA.Platforms.Default\GraphicsContext.cs" Link="Shared\GraphicsContext.cs" />
+		<Compile Include="..\OpenRA.Platforms.Default\Shader.cs" Link="Shared\Shader.cs" />
+		<Compile Include="..\OpenRA.Platforms.Default\Texture.cs" Link="Shared\Texture.cs" />
+		<Compile Include="..\OpenRA.Platforms.Default\ITextureInternal.cs" Link="Shared\ITextureInternal.cs" />
+		<Compile Include="..\OpenRA.Platforms.Default\VertexBuffer.cs" Link="Shared\VertexBuffer.cs" />
+		<Compile Include="..\OpenRA.Platforms.Default\StaticIndexBuffer.cs" Link="Shared\StaticIndexBuffer.cs" />
+		<Compile Include="..\OpenRA.Platforms.Default\FrameBuffer.cs" Link="Shared\FrameBuffer.cs" />
+		<Compile Include="..\OpenRA.Platforms.Default\ThreadAffine.cs" Link="Shared\ThreadAffine.cs" />
+		<Compile Include="..\OpenRA.Platforms.Default\DummySoundEngine.cs" Link="Shared\DummySoundEngine.cs" />
+	</ItemGroup>
+
+	<!-- native/webgl_shim.c is linked by the consuming app project (OpenRA.Web),
+	     since native sources do not flow across a ProjectReference. -->
+</Project>

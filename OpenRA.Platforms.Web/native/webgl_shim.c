@@ -14,6 +14,7 @@
 
 #include <emscripten/html5.h>
 #include <GLES3/gl3.h>
+#include <string.h>
 
 /* Creates a WebGL2 context on the given canvas selector and makes it current.
    Returns the context handle, or 0 on failure. */
@@ -69,4 +70,57 @@ void openra_gl_read_pixel(int x, int y, unsigned char *out_rgba)
 void *openra_gl_get_proc_address(const char *name)
 {
 	return emscripten_webgl_get_proc_address(name);
+}
+
+int openra_gl_is_extension_supported(const char *name)
+{
+	/* GL spells extensions "GL_EXT_foo" while WebGL spells the same one "EXT_foo",
+	   so both spellings are tried. */
+	const char *unprefixed = name;
+	if (strncmp(name, "GL_", 3) == 0)
+		unprefixed = name + 3;
+
+	EMSCRIPTEN_WEBGL_CONTEXT_HANDLE context = emscripten_webgl_get_current_context();
+	if (emscripten_webgl_enable_extension(context, unprefixed))
+		return 1;
+
+	if (emscripten_webgl_enable_extension(context, name))
+		return 1;
+
+	const char *extensions = (const char *)glGetString(GL_EXTENSIONS);
+	if (extensions == 0)
+		return 0;
+
+	for (int attempt = 0; attempt < 2; attempt++)
+	{
+		const char *needle = attempt == 0 ? name : unprefixed;
+		const size_t length = strlen(needle);
+		for (const char *p = extensions; (p = strstr(p, needle)) != 0; p += length)
+		{
+			const char after = p[length];
+			if ((p == extensions || p[-1] == ' ') && (after == ' ' || after == '\0'))
+				return 1;
+		}
+	}
+
+	return 0;
+}
+
+/* Reports the driver's extension string, for diagnosing feature detection. */
+const char *openra_gl_extensions(void)
+{
+	return (const char *)glGetString(GL_EXTENSIONS);
+}
+
+void openra_gl_destroy_context(int context)
+{
+	emscripten_webgl_destroy_context((EMSCRIPTEN_WEBGL_CONTEXT_HANDLE)context);
+}
+
+void openra_canvas_size(const char *selector, int *width, int *height)
+{
+	double w = 0, h = 0;
+	emscripten_get_element_css_size(selector, &w, &h);
+	*width = (int)w;
+	*height = (int)h;
 }

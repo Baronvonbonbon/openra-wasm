@@ -41,10 +41,19 @@ namespace OpenRA
 		static readonly Timer Timer;
 		static readonly Thread Thread;
 
+		/// <summary>
+		/// Whether log entries are drained by a background thread. Browser-wasm has no
+		/// thread support, so there they are written inline by <see cref="Drain"/> instead.
+		/// </summary>
+		static readonly bool UseBackgroundWriter = !OperatingSystem.IsBrowser();
+
 		static Log()
 		{
 			Channel = System.Threading.Channels.Channel.CreateUnbounded<ChannelData>();
 			ChannelWriter = Channel.Writer;
+
+			if (!UseBackgroundWriter)
+				return;
 
 			Thread = new Thread(DoWork)
 			{
@@ -54,6 +63,19 @@ namespace OpenRA
 			Thread.Start(CancellationToken.Token);
 
 			Timer = new Timer(FlushToDisk, CancellationToken.Token, FlushInterval, Timeout.InfiniteTimeSpan);
+		}
+
+		/// <summary>
+		/// Writes any queued entries on the calling thread. Used when there is no
+		/// background writer to drain the channel.
+		/// </summary>
+		static void Drain()
+		{
+			var reader = Channel.Reader;
+			while (reader.TryRead(out var item))
+				WriteValue(item);
+
+			FlushToDisk();
 		}
 
 		static void FlushToDisk(object state)
@@ -160,11 +182,17 @@ namespace OpenRA
 		public static void Write(string channelName, string value)
 		{
 			ChannelWriter.TryWrite(new ChannelData(channelName, value));
+
+			if (!UseBackgroundWriter)
+				Drain();
 		}
 
 		public static void Write(string channelName, Exception e)
 		{
 			ChannelWriter.TryWrite(new ChannelData(channelName, $"{e.Message}{Environment.NewLine}{e.StackTrace}"));
+
+			if (!UseBackgroundWriter)
+				Drain();
 		}
 
 		public static void Dispose()

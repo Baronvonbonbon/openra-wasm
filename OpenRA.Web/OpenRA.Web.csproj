@@ -23,15 +23,19 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\OpenRA.Game\OpenRA.Game.csproj" />
+		<ProjectReference Include="..\OpenRA.Platforms.Web\OpenRA.Platforms.Web.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>
 		<WasmExtraFilesToDeploy Include="wwwroot/index.html" />
 	</ItemGroup>
 
+	<!-- Native sources are linked by the app project, not by referenced libraries,
+	     so the platform's WebGL shim has to be listed here. -->
 	<ItemGroup>
-		<NativeFileReference Include="native/webgl_shim.c" />
+		<NativeFileReference Include="..\OpenRA.Platforms.Web\native\webgl_shim.c" />
 	</ItemGroup>
+
 
 	<!-- The SDK's deploy of wwwroot content is incremental and does not reliably
 	     re-copy edited files, which silently serves a stale page. Copy them

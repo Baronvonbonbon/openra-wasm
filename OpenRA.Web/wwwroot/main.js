@@ -10,25 +10,37 @@ globalThis.openra = exports.OpenRA.Web;
 
 await runMain();
 
-// Gate C probe: can Emscripten's WebGL emulation be reached through P/Invoke?
-// If so the existing OpenGL.cs stack can be reused against WebGL2.
-const probe = exports.OpenRA.Web.WebGLProbe.Probe('#canvas');
-if (probe.startsWith('OK|')) {
-	const [, version, glsl, renderer, pixel, viaDelegate] = probe.split('|');
-	console.log('[gate-c] WebGL context created through P/Invoke');
-	console.log(`[gate-c]   GL_VERSION: ${version}`);
-	console.log(`[gate-c]   GLSL: ${glsl}`);
-	console.log(`[gate-c]   renderer: ${renderer}`);
+// Gate C: bring up the engine's real graphics stack - WebPlatform creates the
+// window and context, which runs OpenGL.Initialize and binds every GL entry point.
+const renderer = exports.OpenRA.Web.RendererProbe;
 
-	// Read the pixel back to prove the clear actually reached the canvas.
-	const gl = document.getElementById('canvas').getContext('webgl2');
-	console.log(`[gate-c]   pixel read back after clear: rgba(${pixel})`);
-	console.log(`[gate-c]   canvas has a live webgl2 context: ${!!gl}`);
-	console.log(`[gate-c]   glClear bound via proc-address delegate -> rgba(${viaDelegate})`);
-	console.log('[gate-c] PASS - Emscripten GL is reachable from managed code.');
+const created = renderer.CreateWindow('#canvas', 640, 360);
+if (created.startsWith('OK|')) {
+	const [, version, profile, features] = created.split('|');
+	console.log('[gate-c] engine graphics context created');
+	console.log(`[gate-c]   OpenGL.Version: ${version}`);
+	console.log(`[gate-c]   OpenGL.Profile: ${profile}`);
+	console.log(`[gate-c]   OpenGL.Features: ${features}`);
+
+	// Clear through IGraphicsContext.Clear() and read the pixel back, so the result
+	// proves the engine's own code path reached the drawing buffer.
+	const cleared = renderer.ClearAndReadPixel(0.2, 0.6, 0.3);
+	if (cleared.startsWith('OK|')) {
+		const [, pixel] = cleared.split('|');
+		const [r, g, b] = pixel.split(',').map(Number);
+		const expected = [51, 153, 77];
+		const close = expected.every((e, i) => Math.abs([r, g, b][i] - e) <= 2);
+		console.log(`[gate-c]   IGraphicsContext.Clear() -> rgba(${pixel}), expected ~${expected}`);
+		console.log(close && profile === 'Embedded'
+			? '[gate-c] PASS - the engine renders through its own GL stack in the browser.'
+			: `[gate-c] FAIL - profile=${profile} pixelMatch=${close}`);
+	} else {
+		console.log(`[gate-c] ${cleared}`);
+		console.log('[gate-c] FAIL - clear/read failed.');
+	}
 } else {
-	console.log(`[gate-c] ${probe}`);
-	console.log('[gate-c] FAIL - must rebuild the graphics context on [JSImport] WebGL.');
+	console.log(`[gate-c] ${created}`);
+	console.log('[gate-c] FAIL - could not create the engine graphics context.');
 }
 
 // Gate B: drive the engine from requestAnimationFrame. The desktop build blocks in a
