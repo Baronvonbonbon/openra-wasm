@@ -12,7 +12,8 @@
 		     Trimming is deliberately OFF - OpenRA's ObjectCreator/FieldLoader are
 		     heavily reflective and will need ILLink descriptors before this can be enabled. -->
 		<PublishTrimmed>false</PublishTrimmed>
-		<InvariantGlobalization>true</InvariantGlobalization>
+		<!-- Fluent localisation resolves real cultures, which invariant mode rejects. -->
+		<InvariantGlobalization>false</InvariantGlobalization>
 		<WasmEnableSIMD>true</WasmEnableSIMD>
 
 		<!-- Emscripten defaults to MAX_WEBGL_VERSION=1, which silently downgrades a
@@ -24,6 +25,11 @@
 	<ItemGroup>
 		<ProjectReference Include="..\OpenRA.Game\OpenRA.Game.csproj" />
 		<ProjectReference Include="..\OpenRA.Platforms.Web\OpenRA.Platforms.Web.csproj" />
+
+		<!-- The mod manifests list these in Assemblies:. Under wasm there is no bin
+		     directory to load them from, so they are published with the app. -->
+		<ProjectReference Include="..\OpenRA.Mods.Common\OpenRA.Mods.Common.csproj" />
+		<ProjectReference Include="..\OpenRA.Mods.Cnc\OpenRA.Mods.Cnc.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>

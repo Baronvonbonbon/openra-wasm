@@ -37,14 +37,28 @@ namespace OpenRA
 			// Assemblies must exist in the game binary directory next to the main game executable.
 			var assemblyList = new List<Assembly>() { typeof(Game).Assembly };
 			foreach (var filename in manifest.Assemblies)
-				LoadAssembly(assemblyList, Path.Combine(Platform.BinDir, filename));
+				LoadAssembly(assemblyList, filename);
 
 			AppDomain.CurrentDomain.AssemblyResolve += ResolveAssembly;
 			assemblies = assemblyList.SelectMany(asm => asm.GetNamespaces().Select(ns => (asm, ns))).ToArray();
 		}
 
-		static void LoadAssembly(List<Assembly> assemblyList, string resolvedPath)
+		static void LoadAssembly(List<Assembly> assemblyList, string filename)
 		{
+			// Browser builds publish the mod assemblies as part of the application and
+			// the runtime has already loaded them, so there is no file to read.
+			if (Platform.CurrentPlatform == PlatformType.Browser)
+			{
+				var name = Path.GetFileNameWithoutExtension(filename);
+				var loaded = AppDomain.CurrentDomain.GetAssemblies()
+					.FirstOrDefault(a => a.GetName().Name == name) ?? Assembly.Load(name);
+
+				assemblyList.Add(loaded);
+				return;
+			}
+
+			var resolvedPath = Path.Combine(Platform.BinDir, filename);
+
 			// .NET doesn't provide any way of querying the metadata of an assembly without either:
 			//   (a) loading duplicate data into the application domain, breaking the world.
 			//   (b) crashing if the assembly has already been loaded.

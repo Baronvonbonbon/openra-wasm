@@ -46,6 +46,26 @@ if (initialized.startsWith('OK|')) {
 		}
 	}
 
+	// Mod files and game content arrive as archives: the engine reads over a
+	// thousand small files out of mods/, which would otherwise be a request each.
+	for (const [name, target] of [
+		['engine.zip', '.'],
+		// Where the engine's own installer puts the Red Alert freeware packages.
+		['ra-content.zip', '../support/Content/ra/v2'],
+	]) {
+		const response = await fetch(`./content/${name}`);
+		if (!response.ok) {
+			console.log(`[vfs] FAIL - could not fetch ${name}: ${response.status}`);
+			continue;
+		}
+
+		const bytes = new Uint8Array(await response.arrayBuffer());
+		const result = vfs.MountArchive(bytes, target);
+		console.log(result.startsWith('OK|')
+			? `[vfs]   ${name}: extracted ${result.split('|')[1]} files (${(bytes.length / 1048576).toFixed(1)} MB)`
+			: `[vfs]   ${result}`);
+	}
+
 	// The font is needed by the rasterization check below.
 	const fontResponse = await fetch('./engine/mods/common/FreeSans.ttf');
 	if (fontResponse.ok)
@@ -57,12 +77,40 @@ if (initialized.startsWith('OK|')) {
 	const readable = vfs.VerifyReadable('glsl/combined.frag');
 	console.log(`[vfs]   mounted ${files} files, ${bytes} bytes`);
 	console.log(`[vfs]   combined.frag readable through System.IO: ${readable}`);
-	console.log(readable.startsWith('OK|') && Number(files) === shaders.length + 1
+	console.log(readable.startsWith('OK|') && Number(files) > shaders.length
 		? '[vfs] PASS - the engine can read mounted files as ordinary paths.'
 		: '[vfs] FAIL - mounted files are not reachable.');
 } else {
 	console.log(`[vfs] ${initialized}`);
 	console.log('[vfs] FAIL - could not initialize the filesystem.');
+}
+
+// Mods: load Red Alert from the virtual filesystem. This exercises mod discovery,
+// the manifest parser and the .mix readers against the real game content.
+const mods = exports.OpenRA.Web.ModProbe;
+const discovered = mods.DiscoverMods();
+if (discovered.startsWith('OK|')) {
+	console.log(`[mods] discovered: ${discovered.slice(3)}`);
+
+	const loaded = mods.LoadMod('ra');
+	if (loaded.startsWith('OK|')) {
+		const [, title, rules, weapons, assemblies] = loaded.split('|');
+		console.log(`[mods] loaded '${title}': ${rules} rule files, ${weapons} weapon files, ${assemblies} assemblies`);
+
+		// Read a file out of the freeware .mix packages to prove the content is
+		// readable, not merely present.
+		const read = mods.ReadContentPackage('conquer.mix', 'mcv.shp');
+		console.log(`[mods]   ${read.startsWith('OK|') ? `read ${read.split('|')[2]} (${read.split('|')[3]} bytes) from the freeware content` : read}`);
+		console.log(read.startsWith('OK|')
+			? '[mods] PASS - Red Alert loads from the virtual filesystem.'
+			: '[mods] FAIL - mod loaded but content is unreadable.');
+	} else {
+		console.log(`[mods] ${loaded}`);
+		console.log('[mods] FAIL - could not load the mod.');
+	}
+} else {
+	console.log(`[mods] ${discovered}`);
+	console.log('[mods] FAIL - mod discovery failed.');
 }
 
 // Fonts: rasterize a glyph through FreeType, built by packaging/web/build-freetype.sh.

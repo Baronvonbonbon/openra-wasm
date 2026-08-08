@@ -11,6 +11,7 @@
 
 using System;
 using System.IO;
+using System.IO.Compression;
 using System.Runtime.InteropServices.JavaScript;
 
 namespace OpenRA.Web
@@ -76,6 +77,48 @@ namespace OpenRA.Web
 			catch (Exception e)
 			{
 				return $"FAIL|{path}: {e.GetType().Name}: {e.Message}";
+			}
+		}
+
+		/// <summary>
+		/// Extracts a zip archive into the virtual filesystem. The engine reads over a
+		/// thousand small files out of mods/, so they arrive as one archive rather than
+		/// one request each.
+		/// </summary>
+		[JSExport]
+		public static string MountArchive(byte[] archive, string targetRoot)
+		{
+			try
+			{
+				var root = Path.Combine(EngineDir, targetRoot);
+				Directory.CreateDirectory(root);
+
+				var extracted = 0;
+				using (var stream = new MemoryStream(archive))
+				using (var zip = new ZipArchive(stream, ZipArchiveMode.Read))
+				{
+					foreach (var entry in zip.Entries)
+					{
+						// Directory entries have an empty name; their parents are created
+						// as the files inside them are written.
+						if (string.IsNullOrEmpty(entry.Name))
+							continue;
+
+						var destination = Path.Combine(root, entry.FullName);
+						Directory.CreateDirectory(Path.GetDirectoryName(destination));
+						entry.ExtractToFile(destination, true);
+
+						extracted++;
+						byteCount += entry.Length;
+					}
+				}
+
+				fileCount += extracted;
+				return $"OK|{extracted}";
+			}
+			catch (Exception e)
+			{
+				return $"FAIL|{targetRoot}: {e.GetType().Name}: {e.Message}";
 			}
 		}
 

@@ -54,3 +54,5 @@ update.log
 
 # Built by packaging/web/build-freetype.sh
 OpenRA.Platforms.Web/native/freetype/
+OpenRA.Web/wwwroot/content/
+OpenRA.Platforms.Web/native/staging/
