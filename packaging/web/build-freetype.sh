@@ -72,6 +72,35 @@ src/truetype/truetype.c src/sfnt/sfnt.c src/psnames/psnames.c
 src/smooth/smooth.c
 "
 
+# The smooth rasterizer uses setjmp to bail out when its cell pool is exhausted,
+# so it can split the glyph into bands and retry. wasm setjmp is unavailable
+# here: __wasm_setjmp is not defined by any archive in the SDK's sysroot, not
+# even libcompiler_rt-wasm-sjlj.a, so anything referencing it fails to link.
+#
+# ft_setjmp is replaced with a constant 0, which takes the normal render path,
+# and ft_longjmp with a trap. A no-op longjmp would be unsafe: the caller falls
+# through and writes past the end of the cell pool. Trapping loses the retry, so
+# a glyph too complex for one pass aborts instead of being re-rendered in bands.
+# UI-sized glyphs do not reach that path.
+SETJMP_PATCH="$SRC/include/freetype/config/ftstdlib.h"
+if ! grep -q "OPENRA_NO_SETJMP" "$SETJMP_PATCH"; then
+	python3 - "$SETJMP_PATCH" <<'PATCH'
+import re, sys, pathlib
+p = pathlib.Path(sys.argv[1])
+s = p.read_text()
+# Replace everything from the setjmp include through the ft_setjmp definition.
+pattern = re.compile(r"#include <setjmp\.h>.*?#define ft_setjmp\([^\n]*\n", re.S)
+if not pattern.search(s):
+    sys.exit("ftstdlib.h does not match the expected setjmp block; check the FreeType version")
+s = pattern.sub("""/* OPENRA_NO_SETJMP: wasm has no usable setjmp here - see build-freetype.sh */
+#define ft_jmp_buf     int
+#define ft_longjmp( b, v ) ( (void)(b), (void)(v), __builtin_trap() )
+#define ft_setjmp( b ) ( (void)(b), 0 )
+""", s, count=1)
+p.write_text(s)
+PATCH
+fi
+
 # ftinit.c registers every module in FreeType's default list, which would pull in
 # drivers that are not built here. Restrict it to the ones above.
 cat > "$BUILD_DIR/ftmodule-openra.h" <<'HEADER'

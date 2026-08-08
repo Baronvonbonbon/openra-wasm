@@ -34,6 +34,11 @@
 	     so the platform's WebGL shim has to be listed here. -->
 	<ItemGroup>
 		<NativeFileReference Include="../OpenRA.Platforms.Web/native/webgl_shim.c" />
+
+		<!-- Built by packaging/web/build-freetype.sh. The file name matters: .NET
+		     derives the P/Invoke module name from it, and FreeTypeFont.cs imports
+		     "freetype6". -->
+		<NativeFileReference Include="../OpenRA.Platforms.Web/native/freetype/freetype6.a" />
 	</ItemGroup>
 
 
@@ -56,9 +61,13 @@
 	<Target Name="CopyEngineFiles" AfterTargets="WasmGenerateAppBundle">
 		<ItemGroup>
 			<ShaderSource Include="$(EngineRootPath)/glsl/**/*" />
+			<FontSource Include="$(EngineRootPath)/mods/common/*.ttf" />
 		</ItemGroup>
 		<Copy SourceFiles="@(ShaderSource)"
 		      DestinationFolder="$(OutputPath)AppBundle/engine/glsl/%(RecursiveDir)"
+		      SkipUnchangedFiles="false" />
+		<Copy SourceFiles="@(FontSource)"
+		      DestinationFolder="$(OutputPath)AppBundle/engine/mods/common/"
 		      SkipUnchangedFiles="false" />
 	</Target>
 </Project>

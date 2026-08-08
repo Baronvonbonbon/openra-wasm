@@ -34,8 +34,7 @@ namespace OpenRA.Platforms.Default
 
 		public IFont CreateFont(byte[] data)
 		{
-			// FreeType is not linked yet - see packaging/web/build-freetype.sh.
-			return null;
+			return new FreeTypeFont(data);
 		}
 	}
 }

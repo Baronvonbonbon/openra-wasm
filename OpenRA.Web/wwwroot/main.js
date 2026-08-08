@@ -45,16 +45,38 @@ if (initialized.startsWith('OK|')) {
 		}
 	}
 
+	// The font is needed by the rasterization check below.
+	const fontResponse = await fetch('./engine/mods/common/FreeSans.ttf');
+	if (fontResponse.ok)
+		vfs.Mount('mods/common/FreeSans.ttf', new Uint8Array(await fontResponse.arrayBuffer()));
+	else
+		console.log(`[vfs] FAIL - could not fetch FreeSans.ttf: ${fontResponse.status}`);
+
 	const [files, bytes] = vfs.Describe().split('|');
 	const readable = vfs.VerifyReadable('glsl/combined.frag');
 	console.log(`[vfs]   mounted ${files} files, ${bytes} bytes`);
 	console.log(`[vfs]   combined.frag readable through System.IO: ${readable}`);
-	console.log(readable.startsWith('OK|') && Number(files) === shaders.length
+	console.log(readable.startsWith('OK|') && Number(files) === shaders.length + 1
 		? '[vfs] PASS - the engine can read mounted files as ordinary paths.'
 		: '[vfs] FAIL - mounted files are not reachable.');
 } else {
 	console.log(`[vfs] ${initialized}`);
 	console.log('[vfs] FAIL - could not initialize the filesystem.');
+}
+
+// Fonts: rasterize a glyph through FreeType, built by packaging/web/build-freetype.sh.
+const glyph = exports.OpenRA.Web.FontProbe.RasterizeGlyph('mods/common/FreeSans.ttf', 'A', 16);
+if (glyph.startsWith('OK|')) {
+	const [, dimensions, advance, offset, ink] = glyph.split('|');
+	console.log(`[fonts] rasterized 'A' at 16px: ${dimensions}, advance ${advance}, offset ${offset}`);
+	console.log(`[fonts]   ${ink} non-zero pixels in the bitmap`);
+	const [w, h] = dimensions.split('x').map(Number);
+	console.log(w > 0 && h > 0 && Number(ink) > 0
+		? '[fonts] PASS - FreeType rasterizes glyphs in the browser.'
+		: '[fonts] FAIL - glyph bitmap is empty.');
+} else {
+	console.log(`[fonts] ${glyph}`);
+	console.log('[fonts] FAIL - could not rasterize a glyph.');
 }
 
 // Gate C: bring up the engine's real graphics stack - WebPlatform creates the
