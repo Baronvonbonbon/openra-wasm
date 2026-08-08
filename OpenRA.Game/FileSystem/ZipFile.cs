@@ -12,8 +12,8 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
-using ICSharpCode.SharpZipLib.Zip;
 
 namespace OpenRA.FileSystem
 {
@@ -24,7 +24,7 @@ namespace OpenRA.FileSystem
 		public class ReadOnlyZipFile : IReadOnlyPackage
 		{
 			public string Name { get; protected set; }
-			protected ZipFile pkg;
+			protected ZipArchive pkg;
 
 			// Dummy constructor for use with ReadWriteZipFile
 			protected ReadOnlyZipFile() { }
@@ -32,7 +32,7 @@ namespace OpenRA.FileSystem
 			public ReadOnlyZipFile(Stream s, string filename)
 			{
 				Name = filename;
-				pkg = new ZipFile(s);
+				pkg = new ZipArchive(s, ZipArchiveMode.Read);
 			}
 
 			public Stream GetStream(string filename)
@@ -41,9 +41,11 @@ namespace OpenRA.FileSystem
 				if (entry == null)
 					return null;
 
-				using (var z = pkg.GetInputStream(entry))
+				// Entries are decompressed on demand and the returned stream is not
+				// seekable, so the contents are copied out for the caller.
+				using (var z = entry.Open())
 				{
-					var ms = new MemoryStream((int)entry.Size);
+					var ms = new MemoryStream((int)entry.Length);
 					z.CopyTo(ms);
 					ms.Seek(0, SeekOrigin.Begin);
 					return ms;
@@ -54,11 +56,14 @@ namespace OpenRA.FileSystem
 			{
 				get
 				{
-					foreach (ZipEntry entry in pkg)
-						if (entry.IsFile)
-							yield return entry.Name;
+					foreach (var entry in pkg.Entries)
+						if (!IsDirectory(entry))
+							yield return entry.FullName;
 				}
 			}
+
+			// Directories are stored with a trailing "/" in the index, and have no content.
+			protected static bool IsDirectory(ZipArchiveEntry entry) => entry.FullName.EndsWith('/');
 
 			public bool Contains(string filename)
 			{
@@ -67,18 +72,26 @@ namespace OpenRA.FileSystem
 
 			public void Dispose()
 			{
-				pkg?.Close();
+				pkg?.Dispose();
 				GC.SuppressFinalize(this);
 			}
 
 			public IReadOnlyPackage OpenPackage(string filename, FileSystem context)
 			{
-				// Directories are stored with a trailing "/" in the index
+				// Directories are stored with a trailing "/" in the index, but the entry
+				// is optional: an archive may contain "folder/file" without ever naming
+				// "folder/" itself, so a prefix match is the fallback.
 				var entry = pkg.GetEntry(filename) ?? pkg.GetEntry(filename + "/");
 				if (entry == null)
-					return null;
+				{
+					var prefix = filename + '/';
+					if (pkg.Entries.Any(e => e.FullName.StartsWith(prefix, StringComparison.Ordinal)))
+						return new ZipFolder(this, filename);
 
-				if (entry.IsDirectory)
+					return null;
+				}
+
+				if (IsDirectory(entry))
 					return new ZipFolder(this, filename);
 
 				// Other package types can be loaded normally
@@ -100,41 +113,58 @@ namespace OpenRA.FileSystem
 
 			public ReadWriteZipFile(string filename = null, bool create = false)
 			{
-				// SharpZipLib breaks when asked to update archives loaded from outside streams or files
-				// We can work around this by creating a clean in-memory-only file, cutting all outside references
+				// Updating an archive in place requires writing back through the stream it
+				// was opened from, so the contents are copied into memory and that copy
+				// becomes the source of truth, cutting all outside references.
 				if (!string.IsNullOrEmpty(filename) && !create)
 				{
-					using (var copy = new MemoryStream(File.ReadAllBytes(filename)))
-					{
-						pkgStream.Capacity = (int)copy.Length;
-						copy.CopyTo(pkgStream);
-					}
+					var contents = File.ReadAllBytes(filename);
+					pkgStream.Capacity = contents.Length;
+					pkgStream.Write(contents);
+				}
+				else
+				{
+					// An empty stream is not a valid archive; writing one out produces the
+					// end-of-central-directory record that makes it readable.
+					using (new ZipArchive(pkgStream, ZipArchiveMode.Create, true)) { }
 				}
 
-				pkgStream.Position = 0;
-				pkg = new ZipFile(pkgStream);
 				Name = filename;
-
-				// Remove subfields that can break ZIP updating.
-				foreach (ZipEntry entry in pkg)
-					entry.ExtraData = null;
+				Reopen();
 			}
 
 			public ReadWriteZipFile(byte[] data)
 			{
-				using (var copy = new MemoryStream(data))
-				{
-					pkgStream.Capacity = (int)copy.Length;
-					copy.CopyTo(pkgStream);
-				}
+				pkgStream.Capacity = data.Length;
+				pkgStream.Write(data);
+				Name = null;
+				Reopen();
+			}
+
+			/// <summary>
+			/// Reopens the archive for reading over the in-memory copy. An archive opened
+			/// for update only writes its index out when it is disposed, so mutations are
+			/// applied by a short-lived update archive and the read view rebuilt after.
+			/// </summary>
+			void Reopen()
+			{
+				pkg?.Dispose();
+				pkgStream.Position = 0;
+				pkg = new ZipArchive(pkgStream, ZipArchiveMode.Read, true);
+			}
+
+			void Mutate(Action<ZipArchive> mutation)
+			{
+				// The read view holds the stream open, so it has to be dropped first.
+				pkg?.Dispose();
+				pkg = null;
 
 				pkgStream.Position = 0;
-				pkg = new ZipFile(pkgStream);
-				Name = null;
+				using (var update = new ZipArchive(pkgStream, ZipArchiveMode.Update, true))
+					mutation(update);
 
-				// Remove subfields that can break ZIP updating.
-				foreach (ZipEntry entry in pkg)
-					entry.ExtraData = null;
+				Reopen();
+				Commit();
 			}
 
 			void Commit()
@@ -145,18 +175,20 @@ namespace OpenRA.FileSystem
 
 			public void Update(string filename, byte[] contents)
 			{
-				pkg.BeginUpdate();
-				pkg.Add(new StaticStreamDataSource(new MemoryStream(contents)), filename);
-				pkg.CommitUpdate();
-				Commit();
+				Mutate(archive =>
+				{
+					// Adding an entry that already exists would leave both in the index.
+					archive.GetEntry(filename)?.Delete();
+
+					var entry = archive.CreateEntry(filename);
+					using (var s = entry.Open())
+						s.Write(contents);
+				});
 			}
 
 			public void Delete(string filename)
 			{
-				pkg.BeginUpdate();
-				pkg.Delete(filename);
-				pkg.CommitUpdate();
-				Commit();
+				Mutate(archive => archive.GetEntry(filename)?.Delete());
 			}
 		}
 
@@ -208,20 +240,6 @@ namespace OpenRA.FileSystem
 			}
 
 			public void Dispose() { /* nothing to do */ }
-		}
-
-		sealed class StaticStreamDataSource : IStaticDataSource
-		{
-			readonly Stream s;
-			public StaticStreamDataSource(Stream s)
-			{
-				this.s = s;
-			}
-
-			public Stream GetSource()
-			{
-				return s;
-			}
 		}
 
 		public bool TryParsePackage(Stream s, string filename, FileSystem context, out IReadOnlyPackage package)
