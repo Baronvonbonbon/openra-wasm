@@ -274,3 +274,14 @@ int openra_trampoline_34(int a0)
 {
 	return 0;
 }
+
+/* FreeType here is built without the gzip module, which needs setjmp and does
+   not link against the runtime's compiler-rt. Only WOFF fonts need it, and
+   OpenRA ships plain TrueType, so this reports the feature as unavailable.
+   FT_Err_Unimplemented_Feature is 0x94. */
+int FT_Gzip_Uncompress(void *memory, unsigned char *output, unsigned long *output_len,
+                       const unsigned char *input, unsigned long input_len)
+{
+	(void)memory; (void)output; (void)output_len; (void)input; (void)input_len;
+	return 0x94;
+}

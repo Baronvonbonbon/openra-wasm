@@ -51,3 +51,6 @@ update.log
 
 # IntelliJ files
 .idea
+
+# Built by packaging/web/build-freetype.sh
+OpenRA.Platforms.Web/native/freetype/
