@@ -63,6 +63,11 @@ namespace OpenRA.Mods.Common
 			if (Game.Renderer == null)
 				return;
 
+			// The RPC client connects over a named pipe and inspects the current
+			// process, neither of which exist in the browser.
+			if (Platform.CurrentPlatform == PlatformType.Browser)
+				return;
+
 			client = new DiscordRpcClient(ApplicationId, autoEvents: true)
 			{
 				SkipIdenticalPresence = false

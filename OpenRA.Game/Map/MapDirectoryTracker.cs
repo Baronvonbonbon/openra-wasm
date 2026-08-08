@@ -35,6 +35,11 @@ namespace OpenRA
 			this.package = package;
 			this.classification = classification;
 
+			// The browser filesystem is virtual and nothing outside the engine can
+			// modify it, so there is nothing to watch - and wasm has no watcher anyway.
+			if (Platform.CurrentPlatform == PlatformType.Browser)
+				return;
+
 			watcher = new FileSystemWatcher(package.Name);
 			watcher.Changed += (_, e) => AddMapAction(MapAction.Update, e.FullPath);
 			watcher.Created += (_, e) => AddMapAction(MapAction.Add, e.FullPath);
@@ -47,7 +52,7 @@ namespace OpenRA
 
 		public void Dispose()
 		{
-			watcher.Dispose();
+			watcher?.Dispose();
 		}
 
 		void AddMapAction(MapAction mapAction, string fullpath, string oldFullPath = null)

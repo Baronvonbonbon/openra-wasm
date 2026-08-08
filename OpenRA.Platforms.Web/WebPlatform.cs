@@ -18,12 +18,18 @@ namespace OpenRA.Platforms.Default
 		/// <summary>The canvas the engine renders into.</summary>
 		public static string CanvasSelector { get; set; } = "#canvas";
 
+		/// <summary>
+		/// The canvas backing size. The page owns the canvas, so this is used in place
+		/// of the resolution the engine would otherwise request.
+		/// </summary>
+		public static Size CanvasSize { get; set; } = new(1280, 720);
+
 		public IPlatformWindow CreateWindow(
 			Size size, WindowMode windowMode, float scaleModifier, int vertexBatchSize, int indexBatchSize, int videoDisplay, GLProfile profile)
 		{
-			// The page controls the canvas size, so window mode and display index
-			// are ignored and the requested size is taken as the surface size.
-			return new WebPlatformWindow(CanvasSelector, size, scaleModifier);
+			// The page controls the canvas, so window mode, display index and the
+			// requested resolution are all ignored in favour of the canvas size.
+			return new WebPlatformWindow(CanvasSelector, CanvasSize, scaleModifier);
 		}
 
 		public ISoundEngine CreateSound(string device)

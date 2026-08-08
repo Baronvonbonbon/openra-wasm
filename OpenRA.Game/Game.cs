@@ -341,6 +341,18 @@ namespace OpenRA
 			return Run();
 		}
 
+		/// <summary>
+		/// Initializes the game without entering the loop, for hosts that drive it
+		/// themselves. Browser builds step <see cref="LoopStep"/> from
+		/// requestAnimationFrame rather than blocking in <see cref="Loop"/>.
+		/// </summary>
+		public static void InitializeWithoutRunning(string[] args)
+		{
+			Initialize(new Arguments(args));
+			GC.Collect();
+			ResetLoopTimers();
+		}
+
 		static void Initialize(Arguments args)
 		{
 			var engineDirArg = args.GetValue("Engine.EngineDir", null);
@@ -460,10 +472,23 @@ namespace OpenRA
 
 		public static IPlatform CreatePlatform(string platformName)
 		{
-			var rendererPath = Path.Combine(Platform.BinDir, "OpenRA.Platforms." + platformName + ".dll");
+			Type platformType;
+			if (Platform.CurrentPlatform == PlatformType.Browser)
+			{
+				// Browser builds publish the platform assembly with the application and
+				// the runtime has already loaded it, so there is nothing to load from disk.
+				platformType = AppDomain.CurrentDomain.GetAssemblies()
+					.Where(a => a.GetName().Name == "OpenRA.Platforms." + platformName)
+					.SelectMany(a => a.GetTypes())
+					.SingleOrDefault(t => typeof(IPlatform).IsAssignableFrom(t) && !t.IsInterface);
+			}
+			else
+			{
+				var rendererPath = Path.Combine(Platform.BinDir, "OpenRA.Platforms." + platformName + ".dll");
 
-			var loader = new AssemblyLoader(rendererPath);
-			var platformType = loader.LoadDefaultAssembly().GetTypes().SingleOrDefault(t => typeof(IPlatform).IsAssignableFrom(t));
+				var loader = new AssemblyLoader(rendererPath);
+				platformType = loader.LoadDefaultAssembly().GetTypes().SingleOrDefault(t => typeof(IPlatform).IsAssignableFrom(t));
+			}
 
 			if (platformType == null)
 				throw new InvalidOperationException("Platform dll must include exactly one IPlatform implementation.");

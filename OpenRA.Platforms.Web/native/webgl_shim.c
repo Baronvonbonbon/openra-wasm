@@ -125,156 +125,6 @@ void openra_canvas_size(const char *selector, int *width, int *height)
 	*height = (int)h;
 }
 
-/* Trampoline anchors: never called, and exist only so the managed side has a
-   DllImport per distinct GL delegate signature. See TrampolineAnchors.cs. */
-void openra_trampoline_00(void * a0, void * a1)
-{
-}
-
-void openra_trampoline_01(int a0, int a1, unsigned int a2, int a3, int a4, const char * a5)
-{
-}
-
-void openra_trampoline_02(void)
-{
-}
-
-void openra_trampoline_03(int a0, int a1, int a2, int a3)
-{
-}
-
-void openra_trampoline_04(int a0)
-{
-}
-
-void openra_trampoline_05(float a0, float a1, float a2, float a3)
-{
-}
-
-int openra_trampoline_06(void)
-{
-	return 0;
-}
-
-void * openra_trampoline_07(int a0)
-{
-	return 0;
-}
-
-void * openra_trampoline_08(int a0, unsigned int a1)
-{
-	return 0;
-}
-
-void openra_trampoline_09(int a0, int * a1)
-{
-}
-
-unsigned int openra_trampoline_10(void)
-{
-	return 0;
-}
-
-void openra_trampoline_11(unsigned int a0)
-{
-}
-
-void openra_trampoline_12(unsigned int a0, int a1, int * a2)
-{
-}
-
-unsigned int openra_trampoline_13(int a0)
-{
-	return 0;
-}
-
-void openra_trampoline_14(unsigned int a0, int a1, const char ** a2, void * a3)
-{
-}
-
-void openra_trampoline_15(unsigned int a0, unsigned int a1)
-{
-}
-
-void openra_trampoline_16(unsigned int a0, int a1, int * a2, char * a3)
-{
-}
-
-int openra_trampoline_17(unsigned int a0, const char * a1)
-{
-	return 0;
-}
-
-void openra_trampoline_18(int a0, int a1)
-{
-}
-
-void openra_trampoline_19(int a0, float a1)
-{
-}
-
-void openra_trampoline_20(int a0, float a1, float a2)
-{
-}
-
-void openra_trampoline_21(int a0, float a1, float a2, float a3)
-{
-}
-
-void openra_trampoline_22(int a0, int a1, void * a2)
-{
-}
-
-void openra_trampoline_23(int a0, int a1, int a2, void * a3)
-{
-}
-
-void openra_trampoline_24(int a0, unsigned int * a1)
-{
-}
-
-void openra_trampoline_25(int a0, unsigned int a1)
-{
-}
-
-void openra_trampoline_26(int a0, void * a1, void * a2, int a3)
-{
-}
-
-void openra_trampoline_27(int a0, void * a1, void * a2, void * a3)
-{
-}
-
-void openra_trampoline_28(int a0, unsigned int * a1)
-{
-}
-
-void openra_trampoline_29(unsigned int a0, int a1, const char * a2)
-{
-}
-
-void openra_trampoline_30(int a0, int a1, int a2)
-{
-}
-
-void openra_trampoline_31(int a0, int a1, int a2, void * a3)
-{
-}
-
-int openra_trampoline_32(unsigned int a0)
-{
-	return 0;
-}
-
-void openra_trampoline_33(int a0, int a1, float a2)
-{
-}
-
-int openra_trampoline_34(int a0)
-{
-	return 0;
-}
-
 /* FreeType here is built without the gzip module, which needs setjmp and does
    not link against the runtime's compiler-rt. Only WOFF fonts need it, and
    OpenRA ships plain TrueType, so this reports the feature as unavailable.
@@ -284,4 +134,192 @@ int FT_Gzip_Uncompress(void *memory, unsigned char *output, unsigned long *outpu
 {
 	(void)memory; (void)output; (void)output_len; (void)input; (void)input_len;
 	return 0x94;
+}
+
+/* Trampoline anchors: never called, and exist only so the managed side has a
+   DllImport per distinct GL delegate signature. See TrampolineAnchors.cs.
+   Declarations in OpenGL.cs wrap across lines, so the generator that produced
+   these must match them with DOTALL or it silently misses the wrapped ones. */
+void openra_trampoline_00(int a0, int a1, unsigned int a2, int a3, int a4, char * a5, void * a6)
+{
+}
+
+void openra_trampoline_01(void * a0, void * a1)
+{
+}
+
+void openra_trampoline_02(int a0, int a1, unsigned int a2, int a3, int a4, const char * a5)
+{
+}
+
+void openra_trampoline_03(void)
+{
+}
+
+void openra_trampoline_04(int a0, int a1, int a2, int a3)
+{
+}
+
+void openra_trampoline_05(int a0)
+{
+}
+
+void openra_trampoline_06(float a0, float a1, float a2, float a3)
+{
+}
+
+int openra_trampoline_07(void)
+{
+	return 0;
+}
+
+void * openra_trampoline_08(int a0)
+{
+	return 0;
+}
+
+void * openra_trampoline_09(int a0, unsigned int a1)
+{
+	return 0;
+}
+
+void openra_trampoline_10(int a0, int * a1)
+{
+}
+
+unsigned int openra_trampoline_11(void)
+{
+	return 0;
+}
+
+void openra_trampoline_12(unsigned int a0)
+{
+}
+
+void openra_trampoline_13(unsigned int a0, int a1, int * a2)
+{
+}
+
+unsigned int openra_trampoline_14(int a0)
+{
+	return 0;
+}
+
+void openra_trampoline_15(unsigned int a0, int a1, const char ** a2, void * a3)
+{
+}
+
+void openra_trampoline_16(unsigned int a0, unsigned int a1)
+{
+}
+
+void openra_trampoline_17(unsigned int a0, int a1, int * a2, char * a3)
+{
+}
+
+int openra_trampoline_18(unsigned int a0, const char * a1)
+{
+	return 0;
+}
+
+void openra_trampoline_19(unsigned int a0, int a1, int a2, int * a3, int * a4, int * a5, char * a6)
+{
+}
+
+void openra_trampoline_20(int a0, int a1)
+{
+}
+
+void openra_trampoline_21(int a0, float a1)
+{
+}
+
+void openra_trampoline_22(int a0, float a1, float a2)
+{
+}
+
+void openra_trampoline_23(int a0, float a1, float a2, float a3)
+{
+}
+
+void openra_trampoline_24(int a0, int a1, void * a2)
+{
+}
+
+void openra_trampoline_25(int a0, int a1, int a2, void * a3)
+{
+}
+
+void openra_trampoline_26(int a0, unsigned int * a1)
+{
+}
+
+void openra_trampoline_27(int a0, unsigned int a1)
+{
+}
+
+void openra_trampoline_28(int a0, void * a1, void * a2, int a3)
+{
+}
+
+void openra_trampoline_29(int a0, void * a1, void * a2, void * a3)
+{
+}
+
+void openra_trampoline_30(int a0, unsigned int * a1)
+{
+}
+
+void openra_trampoline_31(unsigned int a0, int a1, const char * a2)
+{
+}
+
+void openra_trampoline_32(int a0, int a1, int a2, int a3, int a4, void * a5)
+{
+}
+
+void openra_trampoline_33(int a0, int a1, int a2, int a3, void * a4)
+{
+}
+
+void openra_trampoline_34(int a0, int a1, int a2)
+{
+}
+
+void openra_trampoline_35(int a0, int a1, int a2, void * a3)
+{
+}
+
+void openra_trampoline_36(int a0, int a1, int a2, int a3, int a4, int a5, void * a6)
+{
+}
+
+int openra_trampoline_37(unsigned int a0)
+{
+	return 0;
+}
+
+void openra_trampoline_38(int a0, int a1, int a2, int a3, int a4, int a5, int a6, int a7, void * a8)
+{
+}
+
+void openra_trampoline_39(int a0, int a1, int a2, int a3, int a4, int a5, int a6, int a7)
+{
+}
+
+void openra_trampoline_40(int a0, int a1, float a2)
+{
+}
+
+void openra_trampoline_41(int a0, int a1, int a2, unsigned int a3, int a4)
+{
+}
+
+void openra_trampoline_42(int a0, int a1, int a2, unsigned int a3)
+{
+}
+
+int openra_trampoline_43(int a0)
+{
+	return 0;
 }
