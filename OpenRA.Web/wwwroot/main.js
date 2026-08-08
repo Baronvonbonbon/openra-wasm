@@ -1,4 +1,5 @@
 import { dotnet } from './_framework/dotnet.js';
+import { attachInput } from './input.js';
 
 const { getAssemblyExports, getConfig, runMain } = await dotnet
 	.withDiagnosticTracing(false)
@@ -79,6 +80,34 @@ if (glyph.startsWith('OK|')) {
 	console.log('[fonts] FAIL - could not rasterize a glyph.');
 }
 
+// Input: DOM listeners queue events; the engine drains them in PumpInput.
+const canvas = document.getElementById('canvas');
+attachInput(canvas, exports.OpenRA.Web.InputBridge);
+console.log('[input] listeners attached to the canvas');
+
+// Dispatch real DOM events and confirm they arrive at an IInputHandler through
+// PumpInput, rather than only reaching the queue.
+{
+	const rect = canvas.getBoundingClientRect();
+	const at = (type, init) => canvas.dispatchEvent(new PointerEvent(type, {
+		clientX: rect.left + 32, clientY: rect.top + 24, bubbles: true, ...init,
+	}));
+
+	at('pointerdown', { button: 0, buttons: 1 });
+	at('pointermove', { buttons: 1 });
+	at('pointerup', { button: 0, buttons: 0 });
+	canvas.dispatchEvent(new WheelEvent('wheel', {
+		clientX: rect.left + 32, clientY: rect.top + 24, deltaY: -120, bubbles: true, cancelable: true,
+	}));
+	canvas.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyA', key: 'a', shiftKey: true, bubbles: true }));
+	canvas.dispatchEvent(new KeyboardEvent('keyup', { code: 'KeyA', key: 'a', bubbles: true }));
+	canvas.dispatchEvent(new KeyboardEvent('keydown', { code: 'F5', key: 'F5', bubbles: true }));
+	canvas.dispatchEvent(new KeyboardEvent('keydown', { code: 'ArrowLeft', key: 'ArrowLeft', bubbles: true }));
+
+	const queued = exports.OpenRA.Web.InputBridge.PendingCount();
+	console.log(`[input] ${queued} events queued from ${8} dispatched DOM events`);
+}
+
 // Gate C: bring up the engine's real graphics stack - WebPlatform creates the
 // window and context, which runs OpenGL.Initialize and binds every GL entry point.
 const renderer = exports.OpenRA.Web.RendererProbe;
@@ -106,6 +135,27 @@ if (created.startsWith('OK|')) {
 	} else {
 		console.log(`[gate-c] ${cleared}`);
 		console.log('[gate-c] FAIL - clear/read failed.');
+	}
+
+	// Now that a window exists, drain the queued input through it.
+	const pumped = renderer.PumpInput();
+	if (pumped.startsWith('OK|')) {
+		const received = pumped.slice(3).split(';').filter(Boolean);
+		console.log(`[input] IInputHandler received ${received.length} events:`);
+		for (const r of received) console.log(`[input]   ${r}`);
+
+		const has = p => received.some(r => r.startsWith(p));
+		const keycodes = ['KeyA', 'F5', 'ArrowLeft', 'Digit7', 'Escape']
+			.map(c => `${c}->${exports.OpenRA.Web.InputBridge.ResolveKeycode(c)}`);
+		console.log(`[input]   keycode mapping: ${keycodes.join(' ')}`);
+
+		console.log(has('mouse:Down') && has('mouse:Move') && has('mouse:Up')
+				&& has('mouse:Scroll') && has('key:Down') && has('key:Up') && has('text:a')
+			? '[input] PASS - DOM events reach the engine through PumpInput.'
+			: '[input] FAIL - some event kinds did not arrive.');
+	} else {
+		console.log(`[input] ${pumped}`);
+		console.log('[input] FAIL - could not pump input.');
 	}
 
 	// Compile the engine's real shader: reads from the virtual filesystem,

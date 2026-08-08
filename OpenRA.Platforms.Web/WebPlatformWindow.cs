@@ -64,7 +64,9 @@ namespace OpenRA.Platforms.Default
 
 		public void PumpInput(IInputHandler inputHandler)
 		{
-			// Input arrives from DOM event listeners rather than from a polled queue.
+			// DOM listeners queue events as they arrive; they are dispatched here so
+			// the engine only ever sees input from inside its own loop.
+			WebInput.Dispatch(inputHandler);
 		}
 
 		public string GetClipboardText() => string.Empty;

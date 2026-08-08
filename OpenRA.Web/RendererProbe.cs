@@ -10,6 +10,7 @@
 #endregion
 
 using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices.JavaScript;
 using OpenRA.Graphics;
 using OpenRA.Platforms.Default;
@@ -79,6 +80,41 @@ namespace OpenRA.Web
 			{
 				return $"FAIL|{Describe(e)}";
 			}
+		}
+
+		/// <summary>
+		/// Drains queued input through the platform window and reports what an
+		/// IInputHandler actually received, so the path from DOM event to engine
+		/// handler is verified end to end rather than just at the queue.
+		/// </summary>
+		[JSExport]
+		public static string PumpInput()
+		{
+			try
+			{
+				var recorder = new Recorder();
+				window.PumpInput(recorder);
+				return $"OK|{string.Join(";", recorder.Received)}";
+			}
+			catch (Exception e)
+			{
+				return $"FAIL|{Describe(e)}";
+			}
+		}
+
+		sealed class Recorder : IInputHandler
+		{
+			public readonly List<string> Received = [];
+
+			public void ModifierKeys(Modifiers mods) { }
+
+			public void OnMouseInput(MouseInput input) =>
+				Received.Add($"mouse:{input.Event}:{input.Button}:{input.Location.X},{input.Location.Y}:{input.Modifiers}");
+
+			public void OnKeyInput(KeyInput input) =>
+				Received.Add($"key:{input.Event}:{input.Key}:{input.Modifiers}");
+
+			public void OnTextInput(string text) => Received.Add($"text:{text}");
 		}
 
 		[JSExport]

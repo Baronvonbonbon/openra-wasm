@@ -25,6 +25,7 @@
 		<Compile Include="..\OpenRA.Platforms.Default\ThreadAffine.cs" Link="Shared\ThreadAffine.cs" />
 		<Compile Include="..\OpenRA.Platforms.Default\DummySoundEngine.cs" Link="Shared\DummySoundEngine.cs" />
 		<Compile Include="..\OpenRA.Platforms.Default\FreeTypeFont.cs" Link="Shared\FreeTypeFont.cs" />
+		<Compile Include="..\OpenRA.Platforms.Default\MultiTapDetection.cs" Link="Shared\MultiTapDetection.cs" />
 	</ItemGroup>
 
 	<!-- native/webgl_shim.c is linked by the consuming app project (OpenRA.Web),
