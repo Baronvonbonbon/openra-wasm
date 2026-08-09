@@ -28,6 +28,11 @@ if [ ! -f "$OUTPUT_DIR/engine.zip" ]; then
 		cp -r "$ENGINE_DIR/$dir" "$STAGING/engine/$dir"
 	done
 
+	# Filenames inside .mix packages are stored as hashes; this maps them back to
+	# names. Without it, lookups by name inside those packages fail.
+	cp "$ENGINE_DIR/global mix database.dat" "$STAGING/engine/"
+	cp "$ENGINE_DIR/VERSION" "$STAGING/engine/" 2>/dev/null || true
+
 	(cd "$STAGING/engine" && zip -qr "$OUTPUT_DIR/engine.zip" .)
 	echo "  $(du -h "$OUTPUT_DIR/engine.zip" | cut -f1)"
 fi

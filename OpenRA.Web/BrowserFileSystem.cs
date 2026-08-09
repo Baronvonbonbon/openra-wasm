@@ -122,6 +122,13 @@ namespace OpenRA.Web
 			}
 		}
 
+		/// <summary>Checks an absolute path in the virtual filesystem, for diagnostics.</summary>
+		[JSExport]
+		public static string Exists(string path) =>
+			File.Exists(path) ? $"file:{new FileInfo(path).Length}"
+			: Directory.Exists(path) ? $"dir:{Directory.GetFileSystemEntries(path).Length}"
+			: "missing";
+
 		/// <summary>Reports what has been mounted, for verification.</summary>
 		[JSExport]
 		public static string Describe() => $"{fileCount}|{byteCount}";

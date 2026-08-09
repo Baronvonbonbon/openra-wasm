@@ -146,7 +146,10 @@ namespace OpenRA
 				ruleset = new Ruleset(actors, weapons, voices, notifications, music, null, modelSequences);
 			}
 
-			if (modData.IsOnMainThread)
+			// Loading on a separate task frees the main thread to animate the loadscreen.
+			// That is not possible where there is only one thread: the task would need
+			// the very thread that is blocked waiting for it, so it would never run.
+			if (modData.IsOnMainThread && Platform.CurrentPlatform != PlatformType.Browser)
 			{
 				modData.HandleLoadingProgress();
 
@@ -208,7 +211,10 @@ namespace OpenRA
 				ruleset = new Ruleset(actors, weapons, voices, notifications, music, terrainInfo, modelSequences);
 			}
 
-			if (modData.IsOnMainThread)
+			// Loading on a separate task frees the main thread to animate the loadscreen.
+			// That is not possible where there is only one thread: the task would need
+			// the very thread that is blocked waiting for it, so it would never run.
+			if (modData.IsOnMainThread && Platform.CurrentPlatform != PlatformType.Browser)
 			{
 				modData.HandleLoadingProgress();
 

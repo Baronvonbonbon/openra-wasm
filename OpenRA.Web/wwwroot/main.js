@@ -66,6 +66,13 @@ if (initialized.startsWith('OK|')) {
 			: `[vfs]   ${result}`);
 	}
 
+	for (const path of [
+		'/openra/support/Content/ra/v2',
+		'/openra/support/Content/ra/v2/allies.mix',
+		'/openra/engine/mods/ra/mod.yaml',
+	])
+		console.log(`[vfs]   ${path} -> ${vfs.Exists(path)}`);
+
 	// The font is needed by the rasterization check below.
 	const fontResponse = await fetch('./engine/mods/common/FreeSans.ttf');
 	if (fontResponse.ok)
