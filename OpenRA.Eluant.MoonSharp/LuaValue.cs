@@ -46,12 +46,6 @@ namespace Eluant
 		/// <summary>The numeric value, or null where it is not coercible to a number.</summary>
 		public double? ToNumber() => Value.CastToNumber();
 
-		/// <summary>Unwraps the CLR object behind any of the CLR object values.</summary>
-		public bool TryGetClrObject(out object clrObject)
-		{
-			clrObject = (this as LuaClrObjectValue)?.ClrObject;
-			return clrObject != null;
-		}
 
 		internal static LuaValue FromDynValue(DynValue value)
 		{
