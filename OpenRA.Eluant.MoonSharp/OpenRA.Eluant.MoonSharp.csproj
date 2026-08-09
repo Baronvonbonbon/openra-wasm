@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<!-- Deployed in place of the real Eluant.dll, so it must carry that identity:
+		     OpenRA.Game and OpenRA.Mods.Common are compiled once against Eluant and
+		     bind to it by assembly name at runtime. Only the browser bundle gets this
+		     one; desktop keeps the native-backed original. -->
+		<AssemblyName>Eluant</AssemblyName>
+		<RootNamespace>Eluant</RootNamespace>
+		<OutputPath>$(EngineRootPath)/bin-web/eluant</OutputPath>
+		<EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+		<NoWarn>$(NoWarn);CA1707;CA1051;CS1591</NoWarn>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<Compile Include="**/*.cs" />
+		<PackageReference Include="MoonSharp" Version="2.0.0" />
+	</ItemGroup>
+</Project>
