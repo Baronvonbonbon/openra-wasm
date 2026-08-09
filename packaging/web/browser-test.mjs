@@ -16,6 +16,13 @@ import { join } from 'node:path';
 const url = process.argv[2];
 const seconds = Number(process.argv[3] ?? 6);
 const headlessArg = process.argv.find(a => a.startsWith('--headless=')) ?? '--headless=old';
+
+// SwiftShader gives a dependable WebGL implementation with no GPU, which is what
+// the gate checks want. Measuring real frame rates needs the actual driver, so
+// --gpu drops it, and --headed puts the window on a display for cases where
+// headless still refuses to composite.
+const useGpu = process.argv.includes('--gpu');
+const headed = process.argv.includes('--headed');
 if (!url) {
 	console.error('usage: browser-test.mjs <url> [seconds] [--headless=old|new]');
 	process.exit(2);
@@ -25,15 +32,13 @@ const port = 9222 + Math.floor(Math.random() * 500);
 const profile = mkdtempSync(join(tmpdir(), 'openra-cdp-'));
 
 const chrome = spawn('google-chrome', [
-	headlessArg,
+	...(headed ? [] : [headlessArg]),
 	'--no-sandbox',
 	'--no-first-run',
 	'--disable-dev-shm-usage',
-	// SwiftShader gives us a real WebGL implementation without a GPU, which the
-	// renderer gate depends on.
-	'--use-gl=angle',
-	'--use-angle=swiftshader',
-	'--enable-unsafe-swiftshader',
+	...(useGpu
+		? ['--ignore-gpu-blocklist', '--enable-gpu-rasterization']
+		: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader']),
 	`--remote-debugging-port=${port}`,
 	`--user-data-dir=${profile}`,
 	'--window-size=1280,720',
