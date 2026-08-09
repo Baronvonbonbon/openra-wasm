@@ -47,14 +47,39 @@ namespace Eluant
 		{
 			var parameters = function.Method.GetParameters();
 
+			// A delegate that takes a single LuaVararg receives every argument of the
+			// call rather than just the first, which is how the engine's script member
+			// wrappers are bound.
+			var takesVararg = parameters.Length == 1 && parameters[0].ParameterType == typeof(LuaVararg);
+
 			DynValue Invoke(ScriptExecutionContext context, CallbackArguments args)
 			{
-				var arguments = new object[parameters.Length];
-				for (var i = 0; i < parameters.Length; i++)
-					arguments[i] = ToClr(args.RawGet(i, false), parameters[i].ParameterType);
+				object[] arguments;
+				if (takesVararg)
+				{
+					var values = new LuaValue[args.Count];
+					for (var i = 0; i < args.Count; i++)
+						values[i] = LuaValue.FromDynValue(args.RawGet(i, false));
 
-				var result = function.DynamicInvoke(arguments);
-				return result is LuaValue value ? value.Value : DynValue.FromObject(Script, result);
+					arguments = [new LuaVararg(values)];
+				}
+				else
+				{
+					arguments = new object[parameters.Length];
+					for (var i = 0; i < parameters.Length; i++)
+						arguments[i] = ToClr(args.RawGet(i, false), parameters[i].ParameterType);
+				}
+
+				try
+				{
+					var result = function.DynamicInvoke(arguments);
+					return result is LuaValue value ? value.Value : DynValue.FromObject(Script, result);
+				}
+				catch (System.Reflection.TargetInvocationException e) when (e.InnerException != null)
+				{
+					// Surface the script-facing error rather than the reflection wrapper.
+					throw e.InnerException;
+				}
 			}
 
 			return new LuaFunction(DynValue.NewCallback(Invoke));
