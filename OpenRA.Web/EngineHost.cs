@@ -24,6 +24,8 @@ namespace OpenRA.Web
 	internal static partial class EngineHost
 	{
 		static bool initialized;
+		static long stepTicks;
+		static long steps;
 
 		[JSExport]
 		public static string Initialize(string mod, string canvasSelector, int width, int height)
@@ -62,7 +64,10 @@ namespace OpenRA.Web
 
 			try
 			{
+				var start = System.Diagnostics.Stopwatch.GetTimestamp();
 				Game.LoopStep();
+				stepTicks += System.Diagnostics.Stopwatch.GetTimestamp() - start;
+				steps++;
 				return "OK";
 			}
 			catch (Exception e)
@@ -80,8 +85,10 @@ namespace OpenRA.Web
 				return "FAIL|not initialized";
 
 			var renderer = Game.Renderer;
+			var stepMs = steps == 0 ? 0 : stepTicks * 1000.0 / System.Diagnostics.Stopwatch.Frequency / steps;
+
 			return $"OK|{renderer.Resolution.Width}x{renderer.Resolution.Height}|" +
-				$"{Ui.Root?.Children.Count ?? -1}|{Game.ModData.Manifest.Id}";
+				$"{Ui.Root?.Children.Count ?? -1}|{Game.ModData.Manifest.Id}|{stepMs:0.0}";
 		}
 
 		static string Flatten(Exception e)

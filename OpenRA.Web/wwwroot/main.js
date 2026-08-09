@@ -268,9 +268,10 @@ if (new URLSearchParams(location.search).has('engine')) {
 			}
 
 			const described = engine.Describe();
-			const [, resolution, widgets, id] = described.split('|');
+			const [, resolution, widgets, id, stepMs] = described.split('|');
 			console.log(`[engine] ran ${frames} frames in ${(elapsed / 1000).toFixed(1)}s (${(frames / (elapsed / 1000)).toFixed(1)} fps)`);
 			console.log(`[engine]   resolution ${resolution}, ${widgets} root widgets, mod '${id}'`);
+		console.log(`[engine]   ${stepMs} ms per step`);
 
 			// A rendered frame must have put something other than the clear colour on
 			// the canvas; a silent no-op renderer would leave it untouched.
