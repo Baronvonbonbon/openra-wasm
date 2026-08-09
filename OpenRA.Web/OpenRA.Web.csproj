@@ -30,11 +30,33 @@
 		     directory to load them from, so they are published with the app. -->
 		<ProjectReference Include="..\OpenRA.Mods.Common\OpenRA.Mods.Common.csproj" />
 		<ProjectReference Include="..\OpenRA.Mods.Cnc\OpenRA.Mods.Cnc.csproj" />
+
+		<!-- Eluant binds native lua51, which does not exist in the browser. The shim
+		     carries Eluant's assembly identity and is swapped into the bundle by the
+		     SubstituteEluant target below. ReferenceOutputAssembly is off so it builds
+		     without competing with the real package during reference resolution;
+		     compile-time references still come from the package via OpenRA.Game.
+		     MoonSharp backs the shim and so has to be bundled alongside it. -->
+		<ProjectReference Include="..\OpenRA.Eluant.MoonSharp\OpenRA.Eluant.MoonSharp.csproj"
+		                  ReferenceOutputAssembly="false" />
+		<PackageReference Include="MoonSharp" Version="2.0.0" />
 	</ItemGroup>
 
 	<ItemGroup>
 		<WasmExtraFilesToDeploy Include="wwwroot/index.html" />
 	</ItemGroup>
+
+	<!-- The SDK collects assemblies to bundle from ReferenceCopyLocalPaths in
+	     _GetDefaultWasmAssembliesToBundle. Replacing the entry there is what makes the
+	     browser build use the MoonSharp-backed Eluant instead of the native-backed one;
+	     desktop is untouched because this target lives in the web app project. -->
+	<Target Name="SubstituteEluant" AfterTargets="_GetDefaultWasmAssembliesToBundle">
+		<ItemGroup>
+			<WasmAssembliesToBundle Remove="@(WasmAssembliesToBundle)"
+			                        Condition="'%(Filename)' == 'Eluant'" />
+			<WasmAssembliesToBundle Include="$(EngineRootPath)/bin-web/eluant/Eluant.dll" />
+		</ItemGroup>
+	</Target>
 
 	<!-- Native sources are linked by the app project, not by referenced libraries,
 	     so the platform's WebGL shim has to be listed here. -->
