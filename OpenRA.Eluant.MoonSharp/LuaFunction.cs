@@ -17,7 +17,7 @@ using MoonSharp.Interpreter;
 
 namespace Eluant
 {
-	public sealed class LuaFunction : LuaValue
+	public sealed class LuaFunction : LuaReference
 	{
 		readonly DynValue value;
 

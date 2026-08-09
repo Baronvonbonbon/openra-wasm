@@ -46,10 +46,10 @@ namespace Eluant
 		/// <summary>The numeric value, or null where it is not coercible to a number.</summary>
 		public double? ToNumber() => Value.CastToNumber();
 
-		/// <summary>Unwraps the CLR object behind a <see cref="LuaCustomClrObject"/>.</summary>
+		/// <summary>Unwraps the CLR object behind any of the CLR object values.</summary>
 		public bool TryGetClrObject(out object clrObject)
 		{
-			clrObject = (this as LuaCustomClrObject)?.ClrObject;
+			clrObject = (this as LuaClrObjectValue)?.ClrObject;
 			return clrObject != null;
 		}
 
@@ -111,7 +111,29 @@ namespace Eluant
 		public override int GetHashCode() => Value?.GetHashCode() ?? 0;
 	}
 
-	public sealed class LuaNil : LuaValue
+	/// <summary>Base of the by-value types: nil, booleans, numbers and strings.</summary>
+	public abstract class LuaValueType : LuaValue
+	{
+	}
+
+	/// <summary>Base of the by-reference types: tables, functions and userdata.</summary>
+	public abstract class LuaReference : LuaValue
+	{
+	}
+
+	/// <summary>
+	/// A CLR object handed to Lua. Eluant exposes the wrapped object through
+	/// <see cref="ClrObject"/>, and the engine's assemblies bind to that, so the
+	/// property lives on this base rather than on the concrete classes.
+	/// </summary>
+	public abstract class LuaClrObjectValue : LuaValue
+	{
+		public object ClrObject { get; }
+
+		protected LuaClrObjectValue(object clrObject) { ClrObject = clrObject; }
+	}
+
+	public sealed class LuaNil : LuaValueType
 	{
 		public static LuaNil Instance { get; } = new();
 
@@ -124,7 +146,7 @@ namespace Eluant
 		public override int GetHashCode() => 0;
 	}
 
-	public sealed class LuaBoolean : LuaValue
+	public sealed class LuaBoolean : LuaValueType
 	{
 		public static LuaBoolean True { get; } = new(true);
 		public static LuaBoolean False { get; } = new(false);
@@ -143,7 +165,7 @@ namespace Eluant
 		public override int GetHashCode() => value.GetHashCode();
 	}
 
-	public sealed class LuaNumber : LuaValue
+	public sealed class LuaNumber : LuaValueType
 	{
 		readonly double value;
 
@@ -158,7 +180,7 @@ namespace Eluant
 		public override int GetHashCode() => value.GetHashCode();
 	}
 
-	public sealed class LuaString : LuaValue
+	public sealed class LuaString : LuaValueType
 	{
 		readonly string value;
 
@@ -178,16 +200,44 @@ namespace Eluant
 	/// their metamethods come from whichever Eluant.ObjectBinding interfaces they
 	/// implement - see ClrObjectDescriptor.
 	/// </summary>
-	public sealed class LuaCustomClrObject : LuaValue
+	public sealed class LuaCustomClrObject : LuaClrObjectValue
 	{
-		public object ClrObject { get; }
-
-		public LuaCustomClrObject(object clrObject) { ClrObject = clrObject; }
+		public LuaCustomClrObject(object clrObject) : base(clrObject) { }
 
 		internal override DynValue Value => UserData.Create(ClrObject, ClrObjectDescriptor.Instance);
 
 		public override string ToString() => ClrObject?.ToString();
 		public override bool Equals(object obj) => obj is LuaCustomClrObject o && Equals(o.ClrObject, ClrObject);
 		public override int GetHashCode() => ClrObject?.GetHashCode() ?? 0;
+	}
+}
+
+namespace Eluant
+{
+	/// <summary>
+	/// A CLR object exposed to Lua without member access - Lua can hold it and hand
+	/// it back, but not inspect it.
+	/// </summary>
+	public sealed class LuaOpaqueClrObject : LuaClrObjectValue
+	{
+		public LuaOpaqueClrObject(object clrObject) : base(clrObject) { }
+
+		internal override MoonSharp.Interpreter.DynValue Value =>
+			MoonSharp.Interpreter.DynValue.NewNil();
+
+		public override string ToString() => ClrObject?.ToString();
+	}
+
+	/// <summary>
+	/// A CLR object whose members Lua may reach directly.
+	/// </summary>
+	public sealed class LuaTransparentClrObject : LuaClrObjectValue
+	{
+		public LuaTransparentClrObject(object clrObject) : base(clrObject) { }
+
+		internal override MoonSharp.Interpreter.DynValue Value =>
+			MoonSharp.Interpreter.UserData.Create(ClrObject, ClrObjectDescriptor.Instance);
+
+		public override string ToString() => ClrObject?.ToString();
 	}
 }

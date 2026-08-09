@@ -16,7 +16,7 @@ using MoonSharp.Interpreter;
 
 namespace Eluant
 {
-	public class LuaTable : LuaValue, IEnumerable<KeyValuePair<LuaValue, LuaValue>>
+	public class LuaTable : LuaReference, IEnumerable<KeyValuePair<LuaValue, LuaValue>>
 	{
 		readonly DynValue value;
 
